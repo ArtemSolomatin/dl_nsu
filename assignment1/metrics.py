@@ -1,3 +1,6 @@
+import numpy as np
+from sklearn.metrics import confusion_matrix
+
 def binary_classification_metrics(prediction, ground_truth):
     '''
     Computes metrics for binary classification
@@ -9,10 +12,22 @@ def binary_classification_metrics(prediction, ground_truth):
     Returns:
     precision, recall, f1, accuracy - classification metrics
     '''
-    precision = 0
-    recall = 0
-    accuracy = 0
-    f1 = 0
+
+    #Accuracy
+    accuracy = np.sum(prediction == ground_truth) / len(prediction)
+    
+    #Precision and Recall
+    tp = confusion_matrix(prediction, ground_truth)[0, 0]
+    fp = confusion_matrix(prediction, ground_truth)[0, 1]
+    tn = confusion_matrix(prediction, ground_truth)[1, 0]
+    fn = confusion_matrix(prediction, ground_truth)[1, 1]
+    precision = tp / (tp + fp)
+    recall = tp / (tp + tn)
+    
+    
+    f1 = 2 * precision*recall / (precision+recall)
+    
+    
 
     # TODO: implement metrics!
     # Some helpful links:
