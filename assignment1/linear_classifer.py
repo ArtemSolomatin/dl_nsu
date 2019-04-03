@@ -13,9 +13,7 @@ def softmax(predictions):
       probs, np array of the same shape as predictions - 
         probability for every class, 0..1
     '''
-#     predictions_copy = np.array(predictions)
-#     predictions_copy -= np.max(predictions_copy)
-#     return np.exp(predictions_copy) / np.sum(np.exp(predictions_copy))
+
     exps = np.e ** (predictions - np.max(predictions))
     return exps / exps.sum(1)[:, None]
 
@@ -82,7 +80,7 @@ def l2_regularization(W, reg_strength):
     '''
     
     loss = reg_strength * np.sum(W**2)
-    grad = 2*reg_strength*W
+    grad = 2 * reg_strength * W
     return loss, grad
     
 
@@ -126,7 +124,7 @@ class LinearSoftmaxClassifier():
 
         num_train = X.shape[0]
         num_features = X.shape[1]
-        num_classes = np.max(y)+1
+        num_classes = np.max(y) + 1
         if self.W is None:
             self.W = 0.001 * np.random.randn(num_features, num_classes)
 
