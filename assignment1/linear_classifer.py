@@ -13,10 +13,11 @@ def softmax(predictions):
       probs, np array of the same shape as predictions - 
         probability for every class, 0..1
     '''
-    # TODO implement softmax
-    predictions_copy = np.array(predictions)
-    predictions_copy -= np.max(predictions_copy)
-    return np.exp(predictions_copy) / np.sum(np.exp(predictions_copy))
+#     predictions_copy = np.array(predictions)
+#     predictions_copy -= np.max(predictions_copy)
+#     return np.exp(predictions_copy) / np.sum(np.exp(predictions_copy))
+    exps = np.e ** (predictions - np.max(predictions))
+    return exps / exps.sum(1)[:, None]
 
 
 def cross_entropy_loss(probs, target_index):
@@ -79,6 +80,7 @@ def l2_regularization(W, reg_strength):
       loss, single value - l2 regularization loss
       gradient, np.array same shape as W - gradient of weight by l2 loss
     '''
+    
     loss = reg_strength * np.sum(W**2)
     grad = 2*reg_strength*W
     return loss, grad
@@ -109,8 +111,7 @@ class LinearSoftmaxClassifier():
     def __init__(self):
         self.W = None
 
-    def fit(self, X, y, batch_size=100, learning_rate=1e-7, reg=1e-5,
-            epochs=1):
+    def fit(self, X, y, batch_size=100, learning_rate=1e-7, reg=1e-5, epochs=1):
         '''
         Trains linear classifier
         
@@ -143,7 +144,8 @@ class LinearSoftmaxClassifier():
 
                 self.W -= grad * learning_rate
                 loss_history.append(loss)
-#             print("Epoch %i, loss: %f" % (epoch, loss))
+
+            print("Epoch %i, loss: %f" % (epoch, loss))
 
         return loss_history
 
@@ -159,12 +161,3 @@ class LinearSoftmaxClassifier():
         '''
 
         return np.argmax(np.dot(X, self.W), axis=1)
-
-
-
-                
-                                                          
-
-            
-
-                

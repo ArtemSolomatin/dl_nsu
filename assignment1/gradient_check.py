@@ -20,9 +20,7 @@ def check_gradient(f, x, delta=1e-5, tol = 1e-4):
     assert x.dtype == np.float
     
     orig_x = x.copy()
-#     print(f'2: my x = {orig_x}, original = {x}')
     fx, analytic_grad = f(x)
-#     print(f'3 :my x = {orig_x}, original = {x}')
     assert np.all(np.isclose(orig_x, x, tol)), "Functions shouldn't modify input variables"
 
     assert analytic_grad.shape == x.shape
@@ -39,15 +37,13 @@ def check_gradient(f, x, delta=1e-5, tol = 1e-4):
 
         xdelta = np.zeros_like(x)
         xdelta[ix] = delta
-        numeric_grad_at_ix = (f(x + delta)[0] - f(x - delta)[0]) / (2 * delta * dim)
-        # TODO compute value of numeric gradient of f to idx
-        if not np.isclose(numeric_grad_at_ix, analytic_grad_at_ix, tol).all:
+        numeric_grad_at_ix = (f(x + xdelta)[0] - f(x - xdelta)[0]) / 2 / delta
+
+        if not np.isclose(numeric_grad_at_ix, analytic_grad_at_ix, tol):
             print("Gradients are different at %s. Analytic: %2.5f, Numeric: %2.5f" % (ix, analytic_grad_at_ix, numeric_grad_at_ix))
             return False
 
         it.iternext()
-
-    print("Gradient check passed!")
     return True
 
         
