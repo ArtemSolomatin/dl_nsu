@@ -13,8 +13,8 @@ def l2_regularization(W, reg_strength):
       loss, single value - l2 regularization loss
       gradient, np.array same shape as W - gradient of weight by l2 loss
     """
-    # TODO: Copy from the previous assignment
-    raise Exception("Not implemented!")
+    loss = reg_strength * np.sum(W**2)
+    grad = 2*reg_strength*W
     return loss, grad
 
 
@@ -33,10 +33,19 @@ def softmax_with_cross_entropy(preds, target_index):
       loss, single value - cross-entropy loss
       dprediction, np array same shape as predictions - gradient of predictions by loss value
     """
-    # TODO: Copy from the previous assignment
-    raise Exception("Not implemented!")
+    if len(predictions.shape) == 1: predictions = np.array([predictions])
+    #softmax
+    exps = np.exp(predictions - np.max(predictions))
+    dprediction = exps / np.sum(exps)
 
-    return loss, d_preds
+    batch_size = dprediction.shape[0]
+
+    loss = -np.sum(np.log(dprediction[range(batch_size), target_index])) / batch_size
+
+    dprediction[range(batch_size), target_index] -= 1
+    dprediction /= batch_size
+
+    return loss, dprediction
 
 
 class Param:
@@ -48,15 +57,18 @@ class Param:
     def __init__(self, value):
         self.value = value
         self.grad = np.zeros_like(value)
-
+        self.positive
+        
 
 class ReLULayer:
     def __init__(self):
         pass
 
     def forward(self, X):
-        
-        return max(0, X)
+        res = X.copy()
+        res[res <= 0] = 0
+        self.positive = res > 0
+        return res
 
     def backward(self, d_out):
         """
@@ -70,12 +82,9 @@ class ReLULayer:
         d_result: np array (batch_size, num_features) - gradient
           with respect to input
         """
-        for i, _ in enumerate(d_out):
-            if(d_out[i] == 0):
-                d_result[i] = 0
-            else:
-                d_result[i] = 1
-        return d_result
+        diff = np.zeros_like(d_out)
+        diff[self.positive] = d_out[self.positive]
+        return diff
 
     def params(self):
         # ReLU Doesn't have any parameters
