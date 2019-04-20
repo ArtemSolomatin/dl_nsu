@@ -29,8 +29,9 @@ def check_gradient(f, x, delta=1e-5, tol=1e-4):
         analytic_grad_at_ix = analytic_grad[ix]
         numeric_grad_at_ix = 0
 
-        # TODO Copy from previous assignment
-        raise Exception("Not implemented!")
+        xdelta = np.zeros_like(x)
+        xdelta[ix] = delta
+        numeric_grad_at_ix = (f(x + xdelta)[0] - f(x - xdelta)[0]) / 2 / delta
 
         if not np.isclose(numeric_grad_at_ix, analytic_grad_at_ix, tol):
             print("Gradients are different at %s. Analytic: %2.5f, Numeric: %2.5f" % (
@@ -85,7 +86,7 @@ def check_layer_param_gradient(layer, x,
     Returns:
       bool indicating whether gradients match or not
     """
-    param = layer.params()[param_name]
+    param = layer.get_params()[param_name]
     initial_w = param.value
 
     output = layer.forward(x)
@@ -118,7 +119,7 @@ def check_model_gradient(model, X, y,
     Returns:
       bool indicating whether gradients match or not
     """
-    params = model.params()
+    params = model.get_params()
 
     for param_key in params:
         print("Checking gradient for %s" % param_key)

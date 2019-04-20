@@ -14,11 +14,10 @@ def l2_regularization(W, reg_strength):
       gradient, np.array same shape as W - gradient of weight by l2 loss
     """
     loss = reg_strength * np.sum(W**2)
-    grad = 2*reg_strength*W
+    grad = 2 * reg_strength * W
     return loss, grad
 
-
-def softmax_with_cross_entropy(preds, target_index):
+def softmax_with_cross_entropy(predictions, target_index):
     """
     Computes softmax and cross-entropy loss for model predictions,
     including the gradient
@@ -33,15 +32,16 @@ def softmax_with_cross_entropy(preds, target_index):
       loss, single value - cross-entropy loss
       dprediction, np array same shape as predictions - gradient of predictions by loss value
     """
-    if len(predictions.shape) == 1: predictions = np.array([predictions])
-    #softmax
-    exps = np.exp(predictions - np.max(predictions))
-    dprediction = exps / np.sum(exps)
+    if len(predictions.shape) == 1: 
+        predictions = np.array([predictions])
 
-    batch_size = dprediction.shape[0]
+    exps = np.e ** (predictions - np.max(predictions))
+    probs = exps / np.sum(exps, axis = 1)[:, None]
+    batch_size = probs.shape[0]
 
-    loss = -np.sum(np.log(dprediction[range(batch_size), target_index])) / batch_size
+    loss = -np.log(probs[range(batch_size), target_index]).sum() / batch_size
 
+    dprediction = probs.copy()
     dprediction[range(batch_size), target_index] -= 1
     dprediction /= batch_size
 
@@ -56,19 +56,15 @@ class Param:
 
     def __init__(self, value):
         self.value = value
-        self.grad = np.zeros_like(value)
-        self.positive
-        
+        self.grad = np.zeros_like(value)   
 
 class ReLULayer:
     def __init__(self):
         pass
 
     def forward(self, X):
-        res = X.copy()
-        res[res <= 0] = 0
-        self.positive = res > 0
-        return res
+        self.positive = np.maximum(X, 0)
+        return self.positive
 
     def backward(self, d_out):
         """
@@ -82,11 +78,11 @@ class ReLULayer:
         d_result: np array (batch_size, num_features) - gradient
           with respect to input
         """
-        diff = np.zeros_like(d_out)
-        diff[self.positive] = d_out[self.positive]
-        return diff
 
-    def params(self):
+        d_result = d_out * np.sign(self.positive)
+        return d_result
+
+    def get_params(self):
         # ReLU Doesn't have any parameters
         return {}
 
@@ -98,9 +94,8 @@ class FullyConnectedLayer:
         self.X = None
 
     def forward(self, X):
-        # TODO: Implement forward pass
-        # Your final implementation shouldn't have any loops
-        raise Exception("Not implemented!")
+        self.X = X
+        return np.dot(X, self.W.value) + self.B.value
 
     def backward(self, d_out):
         """
@@ -116,17 +111,15 @@ class FullyConnectedLayer:
         d_result: np array (batch_size, n_input) - gradient
           with respect to input
         """
-        # TODO: Implement backward pass
-        # Compute both gradient with respect to input
-        # and gradients with respect to W and B
-        # Add gradients of W and B to their `grad` attribute
 
-        # It should be pretty similar to linear classifier from
-        # the previous assignment
+        d_B = np.sum(d_out, axis = 0)
+        self.B.grad = d_B[np.newaxis, :]
+        
+        d_W = np.dot(self.X.T, d_out)
+        self.W.grad = d_W
 
-        raise Exception("Not implemented!")
-
+        d_input = np.dot(d_out, self.W.value.T)
         return d_input
 
-    def params(self):
+    def get_params(self):
         return {'W': self.W, 'B': self.B}
