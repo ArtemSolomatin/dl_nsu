@@ -57,7 +57,7 @@ def softmax_with_cross_entropy(predictions, target_index, delta = 1e-5):
     probs = softmax(predictions)
     batch_size = probs.shape[0]
 
-    loss = cross_entropy_loss(probs, target_index)
+    loss = -np.log(probs[range(batch_size), target_index]).sum() / batch_size
 
     dprediction = probs.copy()
     dprediction[range(batch_size), target_index] -= 1
