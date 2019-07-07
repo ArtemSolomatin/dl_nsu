@@ -23,16 +23,8 @@ def binary_classification_metrics(prediction, ground_truth):
     fn = confusion_matrix(prediction, ground_truth)[1, 1]
     precision = tp / (tp + fp)
     recall = tp / (tp + tn)
-    
-    
+       
     f1 = 2 * precision*recall / (precision+recall)
-    
-    
-
-    # TODO: implement metrics!
-    # Some helpful links:
-    # https://en.wikipedia.org/wiki/Precision_and_recall
-    # https://en.wikipedia.org/wiki/F1_score
     
     return precision, recall, f1, accuracy
 
