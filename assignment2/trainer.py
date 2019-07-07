@@ -96,10 +96,6 @@ class Trainer:
             batch_losses = []
 
             for batch_indices in batches_indices:
-                # TODO Generate batches based on batch_indices and
-                # use model to generate loss and gradients for all
-                # the params
-
                 batch_X = self.dataset.train_X[batch_indices]
                 batch_y = self.dataset.train_y[batch_indices]
 
