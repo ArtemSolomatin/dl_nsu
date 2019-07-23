@@ -86,7 +86,7 @@ def check_layer_param_gradient(layer, x,
     Returns:
       bool indicating whether gradients match or not
     """
-    param = layer.params()[param_name]
+    param = layer.get_params()[param_name]
     initial_w = param.value
 
     output = layer.forward(x)

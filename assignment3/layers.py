@@ -1,5 +1,5 @@
 import numpy as np
-
+np.random.seed(seed=19)
 
 def l2_regularization(W, reg_strength):
     """
@@ -13,7 +13,7 @@ def l2_regularization(W, reg_strength):
       loss, single value - l2 regularization loss
       gradient, np.array same shape as W - gradient of weight by l2 loss
     """
-    loss = reg_strength * np.sum(W**2)
+    loss = reg_strength * np.sum(W ** 2)
     grad = 2 * reg_strength * W
     return loss, grad
 
@@ -33,11 +33,11 @@ def softmax_with_cross_entropy(predictions, target_index):
       loss, single value - cross-entropy loss
       dprediction, np array same shape as predictions - gradient of predictions by loss value
     """
-    if len(predictions.shape) == 1: 
+    if len(predictions.shape) == 1:
         predictions = np.array([predictions])
 
     exps = np.e ** (predictions - np.max(predictions))
-    probs = exps / np.sum(exps, axis = 1)[:, None]
+    probs = exps / np.sum(exps, axis=1)[:, None]
     batch_size = probs.shape[0]
 
     loss = -np.log(probs[range(batch_size), target_index]).sum() / batch_size
@@ -54,11 +54,12 @@ class Param:
     Trainable parameter of the model
     Captures both parameter value and the gradient
     '''
+
     def __init__(self, value):
         self.value = value
         self.grad = np.zeros_like(value)
 
-        
+
 class ReLULayer:
     def __init__(self):
         pass
@@ -95,8 +96,8 @@ class FullyConnectedLayer:
         self.X = None
 
     def forward(self, X):
-        self.X = X
-        return np.dot(X, self.W.value) + self.B.value
+        self.X = Param(X.copy())
+        return np.dot(self.X.value, self.W.value) + self.B.value
 
     def backward(self, d_out):
         """
@@ -113,11 +114,9 @@ class FullyConnectedLayer:
           with respect to input
         """
 
-        d_B = np.sum(d_out, axis = 0)
+        d_B = np.sum(d_out, axis=0)
         self.B.grad = d_B[np.newaxis, :]
-        
-        d_W = np.dot(self.X.T, d_out)
-        self.W.grad = d_W
+        self.W.grad = np.dot(self.X.value.T, d_out)
 
         d_input = np.dot(d_out, self.W.value.T)
         return d_input
@@ -126,13 +125,12 @@ class FullyConnectedLayer:
         return {'W': self.W, 'B': self.B}
 
 
-    
 class ConvolutionalLayer:
     def __init__(self, in_channels, out_channels,
                  filter_size, padding):
         '''
         Initializes the layer
-        
+
         Arguments:
         in_channels, int - number of input channels
         out_channels, int - number of output channels
@@ -143,61 +141,70 @@ class ConvolutionalLayer:
         self.filter_size = filter_size
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.W = Param(
-            np.random.randn(filter_size, filter_size,
-                            in_channels, out_channels)
-        )
+        self.W = Param(np.random.randn(filter_size, filter_size, in_channels, out_channels))
 
         self.B = Param(np.zeros(out_channels))
 
         self.padding = padding
 
-
     def forward(self, X):
         batch_size, height, width, channels = X.shape
+        if(channels != self.in_channels):
+            print("number of the channels doesn't match")
 
-        out_height = 0
-        out_width = 0
-        
-        # TODO: Implement forward pass
-        # Hint: setup variables that hold the result
-        # and one x/y location at a time in the loop below
-        
-        # It's ok to use loops for going over width and height
-        # but try to avoid having any other loops
+        # Padding
+        self.X = np.pad(X, (
+            (0, 0),
+            (self.padding, self.padding),
+            (self.padding, self.padding),
+            (0, 0)
+        ), 'constant')
+
+        out_height = (height - self.filter_size + 2 * self.padding) + 1
+        out_width = (width - self.filter_size + 2 * self.padding) + 1
+
+        out = np.zeros((batch_size, out_height, out_width, self.out_channels))
+
         for y in range(out_height):
             for x in range(out_width):
-                # TODO: Implement forward pass for specific location
-                pass
-        raise Exception("Not implemented!")
+                x_window = self.X[:, y:y+self.filter_size, x:x+self.filter_size, :]
+                x_window = x_window.reshape(batch_size, self.filter_size * self.filter_size * self.in_channels)
 
+                w_flat = self.W.value.reshape(self.filter_size * self.filter_size * self.in_channels, self.out_channels)
+
+                out[:, y, x, :] = np.dot(x_window, w_flat) + self.B.value
+        return out
 
     def backward(self, d_out):
-        # Hint: Forward pass was reduced to matrix multiply
-        # You already know how to backprop through that
-        # when you implemented FullyConnectedLayer
-        # Just do it the same number of times and accumulate gradients
+        batch_size, height, width, channels = self.X.shape
+        if (channels != self.in_channels):
+            print("number of the channels doesn't match")
 
-        batch_size, height, width, channels = X.shape
         _, out_height, out_width, out_channels = d_out.shape
 
-        # TODO: Implement backward pass
-        # Same as forward, setup variables of the right shape that
-        # aggregate input gradient and fill them for every location
-        # of the output
+        d_input = np.zeros_like(self.X)
 
-        # Try to avoid having any other loops here too
         for y in range(out_height):
             for x in range(out_width):
-                # TODO: Implement backward pass for specific location
-                # Aggregate gradients for both the input and
-                # the parameters (W and B)
-                pass
+                x_window = self.X[:, y:y + self.filter_size, x:x + self.filter_size, :]
+                x_window = x_window.reshape(batch_size, self.filter_size * self.filter_size * self.in_channels)
 
-        raise Exception("Not implemented!")
+                w_flat = self.W.value.reshape(self.filter_size * self.filter_size * self.in_channels, self.out_channels)
 
-    def params(self):
-        return { 'W': self.W, 'B': self.B }
+                input_corr = np.dot(d_out[:, y, x, :], w_flat.T).reshape(batch_size, self.filter_size, self.filter_size, self.in_channels)
+
+                d_input[:, y:y + self.filter_size, x:x + self.filter_size, :] += input_corr
+
+                self.W.grad = self.W.grad + np.dot(x_window.T, d_out[:, y, x, :]).reshape(self.filter_size, self.filter_size, self.in_channels, out_channels)
+
+        self.B.grad = np.sum(d_out, axis=tuple(range(len(d_out.shape)))[:-1]).reshape(out_channels)
+        if (self.padding):
+            d_input = d_input[:, self.padding:-self.padding, self.padding:-self.padding, :]
+
+        return d_input
+
+    def get_params(self):
+        return {'W': self.W, 'B': self.B}
 
 
 class MaxPoolingLayer:
@@ -215,17 +222,51 @@ class MaxPoolingLayer:
 
     def forward(self, X):
         batch_size, height, width, channels = X.shape
-        # TODO: Implement maxpool forward pass
-        # Hint: Similarly to Conv layer, loop on
-        # output x/y dimension
-        raise Exception("Not implemented!")
+        self.X = X.copy()
+
+        h_pixels = height // self.pool_size
+        w_pixels = width // self.pool_size
+        out = np.zeros((batch_size, h_pixels, w_pixels, channels))
+        self.max_index = np.zeros((h_pixels, w_pixels), dtype=object)
+
+        for y in range(0, height, self.stride):
+            for x in range(0, width, self.stride):
+                y_step = y // self.stride
+                x_step = x // self.stride
+
+                pool_frame = self.X[:, y:y + self.pool_size, x:x + self.pool_size, :].transpose(0, 3, 1, 2) #TODO wtf is this transpose?
+                pool_frame_flat = pool_frame.reshape(batch_size*channels, self.pool_size*self.pool_size)
+
+                out[:, y_step, x_step, :] = np.amax(pool_frame_flat, axis=1).reshape(batch_size, channels)
+                self.max_index[y_step, x_step] = np.where(pool_frame_flat == np.array(np.amax(pool_frame_flat, axis=1))[:, None]) #TODO wtf is that?
+
+                # TODO нужно еще добавить рассчет остаточной части
+        return out
 
     def backward(self, d_out):
-        # TODO: Implement maxpool backward pass
         batch_size, height, width, channels = self.X.shape
-        raise Exception("Not implemented!")
+        d_input = np.zeros(self.X.shape)
 
-    def params(self):
+        s = self.stride
+        p = self.pool_size
+        for ys in range(d_out.shape[1]):
+            for xs in range(d_out.shape[2]):
+                y = ys * s
+                x = xs * s
+                pool_max_index = self.max_index[ys, xs]
+                pool_frame_flat = np.zeros((batch_size * channels,
+                                            p ** 2))  # d_input[:, y:y+p, x:x+p, :].transpose(0, 3, 1, 2).reshape(batch_size*channels, p**2)
+
+                equal_max_counts = np.unique(self.max_index[ys, xs][:][0], return_counts=True)[1]
+                pool_frame_flat[pool_max_index] = \
+                (d_out[:, ys, xs, :].reshape(batch_size * channels) / equal_max_counts)[pool_max_index[:][0]]
+
+                d_input[:, y:y + p, x:x + p, :] += pool_frame_flat.reshape(batch_size, channels, p, p).transpose(0, 2,
+                                                                                                                 3, 1)
+
+        return d_input
+
+    def get_params(self):
         return {}
 
 
@@ -235,16 +276,17 @@ class Flattener:
 
     def forward(self, X):
         batch_size, height, width, channels = X.shape
+        self.X_shape = X.shape
 
         # TODO: Implement forward pass
         # Layer should return array with dimensions
         # [batch_size, hight*width*channels]
-        raise Exception("Not implemented!")
+
+        return X.copy().reshape((batch_size, height * width * channels))
 
     def backward(self, d_out):
-        # TODO: Implement backward pass
-        raise Exception("Not implemented!")
+        return d_out.reshape(self.X_shape)
 
-    def params(self):
+    def get_params(self):
         # No params!
         return {}

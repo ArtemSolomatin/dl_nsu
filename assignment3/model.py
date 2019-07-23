@@ -1,4 +1,5 @@
 import numpy as np
+np.random.seed(seed=19)
 
 from layers import (
     FullyConnectedLayer, ReLULayer,
@@ -27,8 +28,18 @@ class ConvNet:
         reg, float - L2 regularization strength
         """
         self.reg = reg
-        # TODO Create necessary layers
-        raise Exception("Not implemented!")
+        height, width, input_channels = n_input
+
+        self.L = [
+            ConvolutionalLayer(in_channels=input_channels, out_channels=conv1_size, filter_size=3, padding=1),
+            ReLULayer(),
+            MaxPoolingLayer(4, 4),
+            ConvolutionalLayer(in_channels=conv1_size, out_channels=conv2_size, filter_size=3, padding=1),
+            ReLULayer(),
+            MaxPoolingLayer(4, 4),
+            Flattener(),
+            FullyConnectedLayer(8, n_output)
+        ]
 
     def compute_loss_and_gradients(self, X, y):
         """
@@ -39,23 +50,43 @@ class ConvNet:
         X, np array (batch_size, height, width, input_features) - input data
         y, np array of int (batch_size) - classes
         """
-        # Before running forward and backward pass through the model,
         # clear parameter gradients aggregated from the previous pass
+        for index, param in self.params().items():
+            param.grad = np.zeros_like(param.value)
 
-        # TODO Compute loss and fill param gradients
-        # Don't worry about implementing L2 regularization, we will not
-        # need it in this assignment
-        raise Exception("Not implemented!")
+        forward_input = X.copy()
+        for layer in self.L:
+            forward_input = layer.forward(forward_input)
+
+        loss, backward_propagation = softmax_with_cross_entropy(forward_input, y)
+
+        for layer in reversed(self.L):
+            backward_propagation = layer.backward(backward_propagation)
+
+            # for reg_param in ['W', 'B']:
+            #     if reg_param in layer.params():
+            #         loss_l2, dp_l2 = l2_regularization(layer.params()[reg_param].value, self.reg)
+            #         loss += loss_l2
+            #         layer.params()[reg_param].grad += dp_l2
+
+        return loss
 
     def predict(self, X):
-        # You can probably copy the code from previous assignment
-        raise Exception("Not implemented!")
+        pred = np.zeros(X.shape[0], np.int)
+
+        layer_out = X
+        for layer in self.L:
+            layer_out = layer.forward(layer_out)
+        output = layer_out
+
+        pred = output.argmax(1)
+        return pred
 
     def params(self):
         result = {}
 
-        # TODO: Aggregate all the params from all the layers
-        # which have parameters
-        raise Exception("Not implemented!")
+        for layer_id, layer in enumerate(self.L):
+            for key, value in layer.get_params().items():
+                result[key + str(layer_id)] = value
 
         return result
